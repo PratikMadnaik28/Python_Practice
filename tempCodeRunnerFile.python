@@ -1,0 +1,174 @@
+from collections import deque
+import copy
+
+# === DFS Solver ===
+def dfs_maze_solver(maze, start, end):
+    rows, cols = len(maze), len(maze[0])
+    visited = [[False]*cols for _ in range(rows)]
+    path = []
+
+    def dfs(r, c):
+        if (r, c) == end:
+            path.append((r, c))
+            return True
+        if r < 0 or r >= rows or c < 0 or c >= cols or maze[r][c] == 1 or visited[r][c]:
+            return False
+
+        visited[r][c] = True
+        path.append((r, c))
+
+        for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+            if dfs(r + dr, c + dc):
+                return True
+
+        path.pop()
+        return False
+
+    if dfs(start[0], start[1]):
+        return path
+    return None
+
+# === BFS Distance ===
+def bfs_maze_distance(maze, start, end):
+    rows, cols = len(maze), len(maze[0])
+    visited = [[False]*cols for _ in range(rows)]
+    queue = deque([(start[0], start[1], 0)])
+    visited[start[0]][start[1]] = True
+
+    while queue:
+        r, c, dist = queue.popleft()
+        if (r, c) == end:
+            return dist
+
+        for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == 0 and not visited[nr][nc]:
+                visited[nr][nc] = True
+                queue.append((nr, nc, dist + 1))
+    return -1
+
+# === BFS with Path ===
+def bfs_path_finder(maze, start, end):
+    rows, cols = len(maze), len(maze[0])
+    visited = [[False]*cols for _ in range(rows)]
+    parent = [[None]*cols for _ in range(rows)]
+    queue = deque([start])
+    visited[start[0]][start[1]] = True
+
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) == end:
+            path = []
+            while (r, c) != start:
+                path.append((r, c))
+                r, c = parent[r][c]
+            path.append(start)
+            return path[::-1]
+
+        for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and maze[nr][nc] == 0 and not visited[nr][nc]:
+                visited[nr][nc] = True
+                parent[nr][nc] = (r, c)
+                queue.append((nr, nc))
+    return None
+
+# === Maze Visualizer ===
+def print_maze_with_path(maze, path, start, end):
+    maze_copy = copy.deepcopy(maze)
+    for r, c in path:
+        if (r, c) != start and (r, c) != end:
+            maze_copy[r][c] = '*'
+    maze_copy[start[0]][start[1]] = 'S'
+    maze_copy[end[0]][end[1]] = 'E'
+
+    print("\nVisualized Maze with Path:")
+    for row in maze_copy:
+        line = ""
+        for cell in row:
+            if cell == 1:
+                line += '█'
+            elif cell == 0:
+                line += ' '
+            elif cell == '*':
+                line += '.'
+            elif cell == 'S':
+                line += 'S'
+            elif cell == 'E':
+                line += 'E'
+        print(line)
+
+# === Path Comparator ===
+def compare_paths(path1, path2):
+    if path1 == path2:
+        print("\n✅ DFS and BFS paths are identical (shortest and same route).")
+    elif path1 and path2:
+        print("\n⚠️ DFS and BFS both found paths, but they differ.")
+    elif not path1 and not path2:
+        print("\n❌ No path found by either algorithm.")
+    elif not path1:
+        print("\n❌ DFS failed to find a path.")
+    else:
+        print("\n❌ BFS failed to find a path.")
+
+# === Interactive Maze Input ===
+def print_initial_maze(maze, start, end):
+    print("\nInitial Maze Layout:")
+    for r in range(len(maze)):
+        row_str = ""
+        for c in range(len(maze[0])):
+            if (r, c) == start:
+                row_str += 'S '
+            elif (r, c) == end:
+                row_str += 'E '
+            elif maze[r][c] == 1:
+                row_str += '█ '
+            else:
+                row_str += '  '
+        print(row_str)
+
+def get_user_maze():
+    print("Enter maze dimensions:")
+    rows = int(input("Rows: "))
+    cols = int(input("Cols: "))
+    print("Enter maze (each row as 0s and 1s, space-separated):")
+    maze = []
+    for i in range(rows):
+        while True:
+            try:
+                row = list(map(int, input(f"Row {i + 1}: ").strip().split()))
+                if len(row) != cols:
+                    raise ValueError("Incorrect number of columns.")
+                maze.append(row)
+                break
+            except ValueError:
+                print("Invalid input. Please enter the row again.")
+
+    print("Enter start position (e.g., 0 0):")
+    start = tuple(map(int, input().split()))
+    print("Enter end position (e.g., 3 4):")
+    end = tuple(map(int, input().split()))
+    return maze, start, end
+
+# === Main Execution ===
+if __name__ == "__main__":
+    maze, start, end = get_user_maze()
+    print_initial_maze(maze, start, end)
+
+    dfs_path = dfs_maze_solver(maze, start, end)
+    print("\nDFS Path:", dfs_path if dfs_path else "No path found")
+
+    bfs_dist = bfs_maze_distance(maze, start, end)
+    print("BFS Shortest Distance:", bfs_dist if bfs_dist != -1 else "No path found")
+
+    bfs_path = bfs_path_finder(maze, start, end)
+    print("BFS Shortest Path:", bfs_path if bfs_path else "No path found")
+
+    if bfs_path:
+        print_maze_with_path(maze, bfs_path, start, end)
+    elif dfs_path:
+        print_maze_with_path(maze, dfs_path, start, end)
+    else:
+        print("\nMaze is unsolvable!")
+
+    compare_paths(dfs_path, bfs_path)
